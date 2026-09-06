@@ -1,0 +1,13 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+
+metadata:
+  name: java-app
+
+spec:
+  to:
+    kind: Service
+    name: java-app
+
+  port:
+    targetPort: 8080

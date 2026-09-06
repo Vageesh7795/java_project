@@ -1,7 +1,9 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime
+FROM eclipse-temurin:21-jre
 
-COPY target/demo.jar /deployments/demo.jar
+WORKDIR /app
+
+COPY target/*.jar app.jar
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "/deployments/demo.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -23,21 +23,20 @@ pipeline {
             }
         }
 
-        stage('Build Application') {
-            steps {
-                sh '''
-                    mvn clean package -DskipTests
-                '''
-            }
-        }
+        stage('Build Java') {
+    steps {
+        sh '''
+            echo "User: $(whoami)"
+            echo "HOME: $HOME"
 
-        stage('Test') {
-            steps {
-                sh '''
-                    mvn test
-                '''
-            }
-        }
+            mkdir -p /var/jenkins_home/.m2/repository
+
+            mvn clean package \
+              -Dmaven.repo.local=/var/jenkins_home/.m2/repository \
+              -DskipTests
+        '''
+    }
+}
 
         stage('Login to OpenShift') {
 

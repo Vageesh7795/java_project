@@ -19,7 +19,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/example/springboot-demo.git'
+                    url: 'https://github.com/Vageesh7795/java_project.git'
             }
         }
 

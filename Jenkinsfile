@@ -4,39 +4,42 @@ pipeline {
 
     environment {
 
-        PROJECT = "cicd-demo"
+        PROJECT = 'cicd-demo'
+        APP_NAME = 'java-app'
 
-        APP_NAME = "springboot-demo"
+        OC_SERVER = 'https://api.YOUR-CLUSTER:6443'
 
-        IMAGE =
-          "image-registry.openshift-image-registry.svc:5000/${PROJECT}/${APP_NAME}:${BUILD_NUMBER}"
+        REGISTRY = 'image-registry.openshift-image-registry.svc:5000'
 
-        OCP_SERVER = "https://api.ocp.example.com:6443"
+        IMAGE = "${REGISTRY}/${PROJECT}/${APP_NAME}:${BUILD_NUMBER}"
     }
 
     stages {
 
         stage('Checkout') {
+
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/Vageesh7795/java_project.git'
+
+                checkout scm
+
             }
         }
 
-        stage('Build Java') {
-    steps {
-        sh '''
-            echo "User: $(whoami)"
-            echo "HOME: $HOME"
 
-            mkdir -p /var/jenkins_home/.m2/repository
+        stage('Verify Tools') {
 
-            mvn clean package \
-              -Dmaven.repo.local=/var/jenkins_home/.m2/repository \
-              -DskipTests
-        '''
-    }
-}
+            steps {
+
+                sh '''
+                    java -version
+                    mvn -version
+                    git --version
+                    podman --version
+                    oc version --client
+                '''
+            }
+        }
+
 
         stage('Login to OpenShift') {
 
@@ -45,14 +48,14 @@ pipeline {
                 withCredentials([
                     string(
                         credentialsId: 'openshift-token',
-                        variable: 'OCP_TOKEN'
+                        variable: 'OC_TOKEN'
                     )
                 ]) {
 
                     sh '''
-                        oc login ${OCP_SERVER} \
-                          --token=${OCP_TOKEN} \
-                          --server=${OCP_SERVER}
+                        oc login ${OC_SERVER} \
+                          --token="$OC_TOKEN" \
+                          --insecure-skip-tls-verify=true
 
                         oc project ${PROJECT}
 
@@ -61,6 +64,18 @@ pipeline {
                 }
             }
         }
+
+
+        stage('Build Java Application') {
+
+            steps {
+
+                sh '''
+                    mvn clean package -DskipTests=false
+                '''
+            }
+        }
+
 
         stage('Build Container Image') {
 
@@ -74,27 +89,29 @@ pipeline {
             }
         }
 
-        stage('Login to Registry') {
+
+        stage('Login to OpenShift Registry') {
 
             steps {
 
                 withCredentials([
                     string(
                         credentialsId: 'openshift-token',
-                        variable: 'OCP_TOKEN'
+                        variable: 'OC_TOKEN'
                     )
                 ]) {
 
                     sh '''
                         podman login \
-                          -u unused \
-                          -p ${OCP_TOKEN} \
-                          image-registry.openshift-image-registry.svc:5000 \
-                          --tls-verify=false
+                          --tls-verify=false \
+                          -u "$(oc whoami)" \
+                          -p "$OC_TOKEN" \
+                          ${REGISTRY}
                     '''
                 }
             }
         }
+
 
         stage('Push Image') {
 
@@ -102,23 +119,25 @@ pipeline {
 
                 sh '''
                     podman push \
-                      ${IMAGE} \
-                      --tls-verify=false
+                      --tls-verify=false \
+                      ${IMAGE}
                 '''
             }
         }
 
-        stage('Deploy to OpenShift') {
+
+        stage('Deploy') {
 
             steps {
 
                 sh '''
-                    oc apply -f deployment.yaml
-                    oc apply -f service.yaml
-                    oc apply -f route.yaml
+                    oc apply -f k8s/deployment.yaml
+                    oc apply -f k8s/service.yaml
+                    oc apply -f k8s/route.yaml
                 '''
             }
         }
+
 
         stage('Update Image') {
 
@@ -131,7 +150,8 @@ pipeline {
             }
         }
 
-        stage('Wait for Deployment') {
+
+        stage('Rollout') {
 
             steps {
 
@@ -143,36 +163,40 @@ pipeline {
             }
         }
 
+
         stage('Verify') {
 
             steps {
 
                 sh '''
-                    echo "===== Pods ====="
-
-                    oc get pods \
-                      -l app=${APP_NAME}
-
-                    echo "===== Service ====="
-
-                    oc get svc ${APP_NAME}
-
-                    echo "===== Route ====="
-
-                    oc get route ${APP_NAME}
+                    oc get pods
+                    oc get svc
+                    oc get route
                 '''
             }
         }
     }
 
+
     post {
 
         success {
-            echo "Deployment successful"
+
+            echo 'CI/CD PIPELINE SUCCESSFUL'
+
         }
 
         failure {
-            echo "Deployment failed"
+
+            echo 'CI/CD PIPELINE FAILED'
+
+        }
+
+        always {
+
+            sh '''
+                podman logout ${REGISTRY} || true
+            '''
         }
     }
 }

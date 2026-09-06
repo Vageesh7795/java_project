@@ -34,7 +34,6 @@ pipeline {
                     java -version
                     mvn -version
                     git --version
-                    podman --version
                     oc version --client
                 '''
             }

@@ -8,6 +8,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Spring Boot Parent -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -15,23 +16,32 @@
         <relativePath/>
     </parent>
 
+    <!-- Application Information -->
     <groupId>com.example</groupId>
-    <artifactId>springboot-demo</artifactId>
+    <artifactId>java-app</artifactId>
     <version>1.0.0</version>
 
-    <name>springboot-demo</name>
-    <description>Spring Boot application for Jenkins and OpenShift CI/CD</description>
+    <name>java-app</name>
+    <description>Spring Boot application deployed on OpenShift using Jenkins CI/CD</description>
 
+    <!-- Java Version -->
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
     </properties>
 
+    <!-- Dependencies -->
     <dependencies>
 
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Actuator for health checks -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
         <!-- Testing -->
@@ -43,8 +53,10 @@
 
     </dependencies>
 
+    <!-- Build Configuration -->
     <build>
-        <finalName>demo</finalName>
+
+        <finalName>java-app</finalName>
 
         <plugins>
 
